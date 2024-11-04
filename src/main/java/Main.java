@@ -5,7 +5,7 @@ import java.net.Socket;
 public class Main {
     public static void main(String[] args) {
 
-        ServerSocket serverSocket = null;
+        ServerSocket serverSocket;
         Socket clientSocket = null;
         int port = 6379;
         try {
@@ -18,10 +18,9 @@ public class Main {
                 // Wait for connection from client.
                 clientSocket = serverSocket.accept();
 
-                Socket finalClientSocket = clientSocket;
-                new Thread(() -> {
-                    process(finalClientSocket);
-                }).start();
+                ClientHandler clientHandler = new ClientHandler(clientSocket);
+
+                new Thread(clientHandler).start();
             }
 
         } catch (IOException e) {
@@ -34,26 +33,6 @@ public class Main {
             } catch (IOException e) {
                 System.out.println("IOException: " + e.getMessage());
             }
-        }
-    }
-
-    private static void process(Socket clientSocket) {
-        try (BufferedReader reader = new BufferedReader(
-                new InputStreamReader(clientSocket.getInputStream()));
-             BufferedWriter writer = new BufferedWriter(
-                     new OutputStreamWriter(clientSocket.getOutputStream()));) {
-            String content;
-            while ((content = reader.readLine()) != null) {
-                System.out.println("::" + content);
-                if ("ping".equalsIgnoreCase(content)) {
-                    writer.write("+PONG\r\n");
-                    writer.flush();
-                } else if ("eof".equalsIgnoreCase(content)) {
-                    System.out.println("eof");
-                }
-            }
-        } catch (IOException e) {
-            throw new RuntimeException(e);
         }
     }
 }
