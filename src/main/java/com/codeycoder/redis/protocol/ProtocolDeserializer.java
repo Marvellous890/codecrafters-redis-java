@@ -1,4 +1,4 @@
-package com.codeycoder.redis;
+package com.codeycoder.redis.protocol;
 
 import com.codeycoder.redis.exception.EndOfStreamException;
 
@@ -10,8 +10,8 @@ import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
-public class ProtocolParser {
-    private ProtocolParser() {
+public class ProtocolDeserializer {
+    private ProtocolDeserializer() {
     }
 
     public static String parseInput(DataInputStream inputStream) {
