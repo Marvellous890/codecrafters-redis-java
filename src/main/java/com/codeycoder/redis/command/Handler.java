@@ -1,5 +1,7 @@
 package com.codeycoder.redis.command;
 
+import java.util.List;
+
 public interface Handler {
-    String handle(String[] arguments);
+    List<String> handle(String[] arguments);
 }

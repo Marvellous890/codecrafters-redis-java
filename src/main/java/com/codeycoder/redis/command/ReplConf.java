@@ -3,13 +3,15 @@ package com.codeycoder.redis.command;
 
 import com.codeycoder.redis.config.ObjectFactory;
 
+import java.util.List;
+
 public class ReplConf extends AbstractHandler {
     public ReplConf(ObjectFactory objectFactory) {
         super(objectFactory);
     }
 
     @Override
-    public String handle(String[] arguments) {
+    public List<String> handle(String[] arguments) {
         String parameter = arguments[1].toLowerCase();
         switch (parameter) {
             case "listening-port":
@@ -23,6 +25,6 @@ public class ReplConf extends AbstractHandler {
             default:
                 throw new RuntimeException("Unknown parameter: " + parameter);
         }
-        return objectFactory.getProtocolSerializer().simpleString("OK");
+        return List.of(objectFactory.getProtocolSerializer().simpleString("OK"));
     }
 }
