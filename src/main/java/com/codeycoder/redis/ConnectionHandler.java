@@ -1,5 +1,6 @@
 package com.codeycoder.redis;
 
+import com.codeycoder.redis.config.ObjectFactory;
 import com.codeycoder.redis.exception.EndOfStreamException;
 import com.codeycoder.redis.protocol.ProtocolDeserializer;
 
@@ -15,10 +16,10 @@ public class ConnectionHandler extends Thread {
     private final ProtocolDeserializer protocolDeserializer;
     private final CommandHandler commandHandler;
 
-    public ConnectionHandler(Socket socket, ProtocolDeserializer protocolDeserializer, CommandHandler commandHandler) {
+    public ConnectionHandler(Socket socket, ObjectFactory objectFactory) {
         this.socket = socket;
-        this.protocolDeserializer = protocolDeserializer;
-        this.commandHandler = commandHandler;
+        this.protocolDeserializer = objectFactory.getProtocolDeserializer();
+        this.commandHandler = objectFactory.getCommandHandler();
     }
 
     @Override
