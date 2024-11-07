@@ -1,6 +1,5 @@
 package com.codeycoder.redis;
 
-
 import com.codeycoder.redis.exception.EndOfStreamException;
 import com.codeycoder.redis.protocol.ProtocolDeserializer;
 
@@ -13,9 +12,13 @@ import java.nio.charset.StandardCharsets;
 // TODO: event loop
 public class ConnectionHandler extends Thread {
     private final Socket socket;
+    private final ProtocolDeserializer protocolDeserializer;
+    private final CommandHandler commandHandler;
 
-    public ConnectionHandler(Socket socket) {
+    public ConnectionHandler(Socket socket, ProtocolDeserializer protocolDeserializer, CommandHandler commandHandler) {
         this.socket = socket;
+        this.protocolDeserializer = protocolDeserializer;
+        this.commandHandler = commandHandler;
     }
 
     @Override
@@ -24,8 +27,8 @@ public class ConnectionHandler extends Thread {
              OutputStream outputStream = socket.getOutputStream()) {
 
             while (true) {
-                String parsedCommand = ProtocolDeserializer.parseInput(inputStream);
-                String response = CommandHandler.handle(parsedCommand);
+                String parsedCommand = protocolDeserializer.parseInput(inputStream);
+                String response = commandHandler.handle(parsedCommand);
                 outputStream.write(response.getBytes(StandardCharsets.UTF_8));
                 // TODO: handle end of input
             }

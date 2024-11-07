@@ -1,6 +1,4 @@
-package com.codeycoder.redis;
-
-import com.codeycoder.redis.storage.StorageRecord;
+package com.codeycoder.redis.storage;
 
 import java.time.Instant;
 import java.util.Map;
