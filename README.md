@@ -1,5 +1,7 @@
 [![progress-banner](https://backend.codecrafters.io/progress/redis/f8d9def4-364c-4c93-a0ff-d3992295eff4)](https://app.codecrafters.io/users/Marvellous890?r=2qF)
 
+Big thanks to https://github.com/Yevhenii-Khaliuk/codecrafters-redis-java
+
 This is a starting point for Java solutions to the
 ["Build Your Own Redis" Challenge](https://codecrafters.io/challenges/redis).
 
