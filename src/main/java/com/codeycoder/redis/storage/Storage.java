@@ -5,21 +5,21 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class Storage {
-    private static final Map<String, StorageRecord> storage = new ConcurrentHashMap<>();
+    private static final Map<String, StorageRecord> cache = new ConcurrentHashMap<>();
 
     private Storage() {
     }
 
     public static void put(String key, String value) {
-        storage.put(key, new StorageRecord(value, Instant.MAX));
+        cache.put(key, new StorageRecord(value, Instant.MAX));
     }
 
     public static void put(String key, String value, Long expiration) {
-        storage.put(key, new StorageRecord(value, Instant.now().plusMillis(expiration)));
+        cache.put(key, new StorageRecord(value, Instant.now().plusMillis(expiration)));
     }
 
     public static String get(String key) {
-        StorageRecord storageRecord = storage.get(key);
+        StorageRecord storageRecord = cache.get(key);
         if (storageRecord == null) {
             return null;
         }
@@ -31,6 +31,6 @@ public class Storage {
     }
 
     public static void remove(String key) {
-        storage.remove(key);
+        cache.remove(key);
     }
 }
