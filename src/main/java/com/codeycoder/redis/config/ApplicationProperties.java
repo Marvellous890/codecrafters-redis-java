@@ -70,7 +70,12 @@ public class ApplicationProperties {
                     i++;
                     break;
                 case "replicaof":
-                    replicaProperties = new ReplicaProperties(args[i + 1], Integer.parseInt(args[i + 2]));
+                    String input = args[i + 1];
+                    String[] parts = input.split(" ");
+                    String host = parts[0];
+                    int port = Integer.parseInt(parts[1]);
+
+                    replicaProperties = new ReplicaProperties(host, port);
                     i += 2;
                     break;
                 default:
