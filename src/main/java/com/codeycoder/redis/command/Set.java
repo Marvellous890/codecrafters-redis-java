@@ -3,9 +3,7 @@ package com.codeycoder.redis.command;
 import com.codeycoder.redis.config.ObjectFactory;
 import com.codeycoder.redis.storage.Storage;
 
-import java.util.List;
-
-public class Set extends AbstractHandler {
+public class Set extends AbstractHandler implements Write {
     public Set(ObjectFactory objectFactory) {
         super(objectFactory);
     }

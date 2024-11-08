@@ -1,7 +1,7 @@
 package com.codeycoder.redis.command;
 
-
 import com.codeycoder.redis.config.ObjectFactory;
+import org.apache.commons.lang3.math.NumberUtils;
 
 public class ReplConf extends AbstractHandler {
     public ReplConf(ObjectFactory objectFactory) {
@@ -13,10 +13,12 @@ public class ReplConf extends AbstractHandler {
         String parameter = arguments[1].toLowerCase();
         switch (parameter) {
             case "listening-port":
-                objectFactory.getApplicationProperties().addReplica(Integer.parseInt(arguments[2]));
+                if (!NumberUtils.isDigits(arguments[2])) {
+                    throw new RuntimeException("Port cannot be parsed: " + arguments[2]);
+                }
                 break;
             case "capa":
-                if (!"psync2".equalsIgnoreCase(arguments[2])) {
+                if (!java.util.Set.of("psync2", "eof").contains(arguments[2])) {
                     throw new RuntimeException("Unknown parameter: " + arguments[2]);
                 }
                 break;

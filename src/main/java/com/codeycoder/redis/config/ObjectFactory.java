@@ -1,31 +1,27 @@
 package com.codeycoder.redis.config;
 
-
-import com.codeycoder.redis.CommandHandler;
 import com.codeycoder.redis.command.CommandFactory;
 import com.codeycoder.redis.protocol.ProtocolDeserializer;
 import com.codeycoder.redis.protocol.ProtocolSerializer;
+import com.codeycoder.redis.replica.CommandReplicator;
 
 import java.lang.reflect.InvocationTargetException;
 
 public class ObjectFactory {
     private final ApplicationProperties applicationProperties;
-    private CommandFactory commandFactory;
     private ProtocolDeserializer protocolDeserializer;
     private ProtocolSerializer protocolSerializer;
-    private CommandHandler commandHandler;
+    private CommandFactory commandFactory;
+    private CommandReplicator commandReplicator;
 
-    public ObjectFactory(ApplicationProperties applicationProperties) throws InvocationTargetException, NoSuchMethodException, InstantiationException, IllegalAccessException {
+    public ObjectFactory(ApplicationProperties applicationProperties) throws InvocationTargetException,
+            NoSuchMethodException, InstantiationException, IllegalAccessException {
         this.applicationProperties = applicationProperties;
         init();
     }
 
     public ApplicationProperties getApplicationProperties() {
         return applicationProperties;
-    }
-
-    public CommandFactory getCommandFactory() {
-        return commandFactory;
     }
 
     public ProtocolDeserializer getProtocolDeserializer() {
@@ -36,14 +32,19 @@ public class ObjectFactory {
         return protocolSerializer;
     }
 
-    public CommandHandler getCommandHandler() {
-        return commandHandler;
+    public CommandFactory getCommandFactory() {
+        return commandFactory;
     }
 
-    private void init() throws InvocationTargetException, NoSuchMethodException, InstantiationException, IllegalAccessException {
+    public CommandReplicator getCommandReplicator() {
+        return commandReplicator;
+    }
+
+    private void init() throws InvocationTargetException, NoSuchMethodException, InstantiationException,
+            IllegalAccessException {
         protocolDeserializer = new ProtocolDeserializer();
         protocolSerializer = new ProtocolSerializer();
         commandFactory = new CommandFactory(this);
-        commandHandler = new CommandHandler(commandFactory);
+        commandReplicator = new CommandReplicator(this);
     }
 }
