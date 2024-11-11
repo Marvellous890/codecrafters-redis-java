@@ -5,11 +5,7 @@ import com.codeycoder.redis.config.Logger;
 import com.ning.compress.lzf.LZFDecoder;
 import org.apache.commons.lang3.tuple.Pair;
 
-import java.io.ByteArrayOutputStream;
-import java.io.DataInputStream;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.IOException;
+import java.io.*;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -199,7 +195,7 @@ public class RdbProcessor {
             while (true) {
                 keys.add(readKeyValuePair(inputStream).getKey());
             }
-        } catch (EndOfRdbFileException e) {
+        } catch (EndOfRdbFileException | EOFException e) {
             LOGGER.log("End of RDB file reached");
         }
         return keys;
