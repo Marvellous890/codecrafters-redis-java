@@ -1,6 +1,7 @@
 package com.codeycoder.redis.protocol;
 
 import com.codeycoder.redis.config.ApplicationProperties;
+import com.codeycoder.redis.config.Logger;
 import com.ning.compress.lzf.LZFDecoder;
 import org.apache.commons.lang3.tuple.Pair;
 
@@ -13,6 +14,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class RdbProcessor {
+    private static final Logger LOGGER = new Logger(RdbProcessor.class);
+
     private final ApplicationProperties applicationProperties;
 
     public RdbProcessor(ApplicationProperties applicationProperties) {
@@ -24,18 +27,22 @@ public class RdbProcessor {
         String dbFilename = applicationProperties.getDbFilename();
         String fullFilename = String.format("%s/%s", dir, dbFilename);
         try (DataInputStream inputStream = new DataInputStream(new FileInputStream(fullFilename))) {
+
             // Step 1: traverse the file up to resizedb field, which is indicated by 0xFB byte
             byte b = inputStream.readByte();
             while ((b & 0xFB) != 0xFB) {
                 b = inputStream.readByte();
             }
+
             // Step 2: read 2 length-encoded sizes - hash table and expire hash table
             readLengthEncodedInt(inputStream);
             readLengthEncodedInt(inputStream);
+
             // Step 3: key-value pairs
             return readAllKeys(inputStream);
+
         } catch (FileNotFoundException e) {
-            System.out.println("RDB file is not present");
+            LOGGER.log("RDB file is not present");
             return List.of(new byte[]{});
         }
     }
@@ -58,12 +65,12 @@ public class RdbProcessor {
 
             // Step 3: key-value pairs
             Pair<byte[], byte[]> pair = readKeyValuePair(inputStream);
-            System.out.printf("First pair read, key: %s, value: %s%n",
-                    new String(pair.getKey()), new String(pair.getValue()));
+            LOGGER.log(String.format("First pair read, key: %s, value: %s%n",
+                    new String(pair.getKey()), new String(pair.getValue())));
             return pair;
 
         } catch (FileNotFoundException e) {
-            System.out.println("RDB file is not present");
+            LOGGER.log("RDB file is not present");
             return Pair.of(new byte[]{}, new byte[]{});
         }
     }
@@ -179,7 +186,7 @@ public class RdbProcessor {
             throw new EndOfRdbFileException();
         } else {
             // TODO: implement other value types
-            System.out.println("Value type is not implemented: " + valueType);
+            LOGGER.log("Value type is not implemented: " + valueType);
             value = new byte[]{};
         }
 
@@ -193,10 +200,11 @@ public class RdbProcessor {
                 keys.add(readKeyValuePair(inputStream).getKey());
             }
         } catch (EndOfRdbFileException e) {
-            System.out.println("End of RDB file reached");
+            LOGGER.log("End of RDB file reached");
         }
         return keys;
     }
+
     private class EndOfRdbFileException extends RuntimeException {
     }
 }
