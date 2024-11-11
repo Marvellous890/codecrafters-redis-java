@@ -18,25 +18,34 @@ public class RdbProcessor {
     }
 
     public byte[] readFirstKey() throws IOException {
+        return readFirstKeyValuePair().getKey();
+    }
+
+    public Pair<byte[], byte[]> readFirstKeyValuePair() throws IOException {
         String dir = applicationProperties.getDir();
         String dbFilename = applicationProperties.getDbFilename();
         String fullFilename = String.format("%s/%s", dir, dbFilename);
         try (DataInputStream inputStream = new DataInputStream(new FileInputStream(fullFilename))) {
+
             // Step 1: traverse the file up to resizedb field, which is indicated by 0xFB byte
             byte b = inputStream.readByte();
             while ((b & 0xFB) != 0xFB) {
                 b = inputStream.readByte();
             }
+
             // Step 2: read 2 length-encoded sizes - hash table and expire hash table
             readLengthEncodedInt(inputStream);
             readLengthEncodedInt(inputStream);
+
             // Step 3: key-value pairs
-            byte[] key = readKeyValuePair(inputStream).getLeft();
-            System.out.println("First key read: " + new String(key));
-            return key;
+            Pair<byte[], byte[]> pair = readKeyValuePair(inputStream);
+            System.out.printf("First pair read, key: %s, value: %s%n",
+                    new String(pair.getKey()), new String(pair.getValue()));
+            return pair;
+
         } catch (FileNotFoundException e) {
             System.out.println("RDB file is not present");
-            return new byte[]{};
+            return Pair.of(new byte[]{}, new byte[]{});
         }
     }
 
@@ -77,6 +86,7 @@ public class RdbProcessor {
 
     private byte[] readEncodedString(DataInputStream inputStream) throws IOException {
         int stringSize = 0;
+
         final byte TWO_LEFTMOST_BITS = (byte) 0b1100_0000;
         byte first = inputStream.readByte();
         if ((first & TWO_LEFTMOST_BITS) == 0b0000_0000) {
@@ -106,7 +116,6 @@ public class RdbProcessor {
                 }
                 stringSize = result;
             } else if ((first & 0b0011_1111) == 3) {
-                // compressed String follows compressed length and uncompressed length
                 int compressedLength = readLengthEncodedInt(inputStream);
                 int uncompressedLength = readLengthEncodedInt(inputStream);
                 ByteArrayOutputStream buf = new ByteArrayOutputStream(compressedLength);
@@ -129,16 +138,28 @@ public class RdbProcessor {
 
     private Pair<byte[], byte[]> readKeyValuePair(DataInputStream inputStream) throws IOException {
         byte first = inputStream.readByte();
+        byte valueType;
         if ((first & 0xFD) == 0xFD) {
             // expiry time in seconds, 4 bytes; skip for now
             for (int i = 0; i < 4; i++) inputStream.readByte();
+            valueType = inputStream.readByte();
         } else if ((first & 0xFC) == 0xFC) {
             // expiry time in ms, 8 bytes; skip for now
             for (int i = 0; i < 8; i++) inputStream.readByte();
+            valueType = inputStream.readByte();
         } else {
-            // 'first' is a value type indicator, skip reading it for now
+            valueType = first;
         }
         byte[] key = readEncodedString(inputStream);
-        return Pair.of(key, new byte[]{});
+        byte[] value;
+        if (valueType == 0) {
+            value = readEncodedString(inputStream);
+        } else {
+            // TODO: implement other value types
+            System.out.println("Value type is not implemented: " + valueType);
+            value = new byte[]{};
+        }
+
+        return Pair.of(key, value);
     }
 }
