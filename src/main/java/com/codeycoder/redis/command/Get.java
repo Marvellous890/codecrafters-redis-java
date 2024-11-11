@@ -3,8 +3,10 @@ package com.codeycoder.redis.command;
 import com.codeycoder.redis.config.Logger;
 import com.codeycoder.redis.config.ObjectFactory;
 import com.codeycoder.redis.storage.Storage;
+import com.codeycoder.redis.storage.StorageRecord;
 
 import java.io.IOException;
+import java.time.Instant;
 import java.util.Arrays;
 import java.util.Map;
 
@@ -23,9 +25,14 @@ public class Get extends AbstractHandler {
             value = Storage.get(arguments[1]);
         } else {
             try {
-                Map<String, String> pairs = objectFactory.getRdbProcessor().readAllPairs();
+                Map<String, StorageRecord> pairs = objectFactory.getRdbProcessor().readAllPairs();
                 LOGGER.log("Pairs read: " + pairs);
-                value = pairs.get(arguments[1]);
+                StorageRecord recordValue = pairs.get(arguments[1]);
+                if (Instant.now().isAfter(recordValue.expiration())) {
+                    value = null;
+                } else {
+                    value = recordValue.value();
+                }
             } catch (IOException e) {
                 throw new RuntimeException(e);
             }
