@@ -24,7 +24,7 @@ public class Config extends AbstractHandler {
                         yield objectFactory.getProtocolSerializer().array(List.of(DIR, dir));
                     }
                     case DB_FILENAME -> {
-                        var dbFilename = objectFactory.getApplicationProperties().getDir();
+                        var dbFilename = objectFactory.getApplicationProperties().getDbFilename();
                         yield objectFactory.getProtocolSerializer().array(List.of(DB_FILENAME, dbFilename));
                     }
                     default -> throw new RuntimeException("Unknown parameter: " + parameter);

@@ -72,6 +72,7 @@ public class ApplicationProperties {
     public String getDir() {
         return dir;
     }
+
     public String getDbFilename() {
         return dbFilename;
     }
