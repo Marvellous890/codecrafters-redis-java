@@ -11,6 +11,10 @@ public class ProtocolSerializer {
         return ("+" + value + CRLF_TERMINATOR).getBytes();
     }
 
+    public byte[] simpleError(String value) {
+        return ("-" + value + CRLF_TERMINATOR).getBytes();
+    }
+
     public byte[] bulkString(String value) {
         if (value == null) {
             return ("$-1" + CRLF_TERMINATOR).getBytes();
