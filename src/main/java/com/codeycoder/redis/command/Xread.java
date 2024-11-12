@@ -9,35 +9,34 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
-public class Xrange extends AbstractHandler {
-    public Xrange(ObjectFactory objectFactory) {
+public class Xread extends AbstractHandler {
+    public Xread(ObjectFactory objectFactory) {
         super(objectFactory);
     }
 
     @Override
     public byte[] handle(String[] arguments) {
-        if (arguments.length != 4) {
-            throw new IllegalArgumentException("Expected 4 arguments, got " + arguments.length);
-        }
-
-        String streamKey = arguments[1];
-        String start = arguments[2];
-        // since we are using lexicographical comparison, it's safe to set 'end' to ':' here to support '+' as max end
-        String end = arguments[3].equals("+") ? ":" : arguments[3];
-
+        validateArguments(arguments);
+        String streamKey = arguments[2];
+        String startId = arguments[3];
         List foundStream =
                 Optional.ofNullable(Storage.get(streamKey))
                         .filter(r -> r.valueType() == ValueType.STREAM)
                         .map(r -> (List<StreamRecord>) r.value())
                         .orElseGet(ArrayList::new)
                         .stream()
-                        .filter(r -> idIsBetween(r.id(), start, end))
+                        .filter(r -> r.id().compareTo(startId) > 0)
                         .map(StreamRecord::toSerializable)
                         .toList();
-        return objectFactory.getProtocolSerializer().array(foundStream);
+        return objectFactory.getProtocolSerializer().array(List.of(List.of(streamKey, foundStream)));
     }
 
-    private boolean idIsBetween(String id, String start, String end) {
-        return id.compareTo(start) >= 0 && id.compareTo(end) <= 0;
+    private void validateArguments(String[] arguments) {
+        if (arguments.length < 4) {
+            throw new IllegalArgumentException("Expected at least 4 arguments, got " + arguments.length);
+        }
+        if (!arguments[1].equalsIgnoreCase("streams")) {
+            throw new IllegalArgumentException("Expected 'streams' argument, got " + arguments[1]);
+        }
     }
 }
