@@ -19,9 +19,12 @@ public class Xrange extends AbstractHandler {
         if (arguments.length != 4) {
             throw new IllegalArgumentException("Expected 4 arguments, got " + arguments.length);
         }
+
         String streamKey = arguments[1];
         String start = arguments[2];
-        String end = arguments[3];
+        // since we are using lexicographical comparison, it's safe to set 'end' to ':' here to support '+' as max end
+        String end = arguments[3].equals("+") ? ":" : arguments[3];
+
         List foundStream =
                 Optional.ofNullable(Storage.get(streamKey))
                         .filter(r -> r.valueType() == ValueType.STREAM)
