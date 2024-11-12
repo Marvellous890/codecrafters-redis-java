@@ -1,8 +1,8 @@
 package com.codeycoder.redis.command;
 
 import com.codeycoder.redis.config.Logger;
-import com.codeycoder.redis.protocol.ValueType;
 import com.codeycoder.redis.config.ObjectFactory;
+import com.codeycoder.redis.protocol.ValueType;
 import com.codeycoder.redis.storage.Storage;
 import com.codeycoder.redis.storage.StorageRecord;
 import org.apache.commons.lang3.tuple.Pair;
@@ -13,6 +13,11 @@ import java.util.Optional;
 
 public class Xadd extends AbstractHandler {
     private static final Logger LOGGER = new Logger(Xadd.class);
+
+    private static final String DOUBLE_ZERO_ID_ERROR_MESSAGE =
+            "ERR The ID specified in XADD must be greater than 0-0";
+    private static final String INVALID_ID_ERROR_MESSAGE =
+            "ERR The ID specified in XADD is equal or smaller than the target stream top item";
 
     public Xadd(ObjectFactory objectFactory) {
         super(objectFactory);
@@ -28,15 +33,18 @@ public class Xadd extends AbstractHandler {
                         .filter(r -> r.valueType() == ValueType.STREAM)
                         .map(StorageRecord::value)
                         .orElseGet(ArrayList::new);
+
+        String millisStreamId = streamId.substring(0, streamId.indexOf("-"));
         String latestId = existingStream.reversed().stream()
                 .filter(p -> p.getKey().equals("id"))
-                .findFirst()
                 .map(Pair::getValue)
+                .findFirst()
                 .orElse(null);
-        String errorMessage = validateStreamId(streamId, latestId);
 
-        if (errorMessage != null) {
-            return objectFactory.getProtocolSerializer().simpleError(errorMessage);
+        try {
+            streamId = validateStreamId(streamId, latestId);
+        } catch (InvalidIdException e) {
+            return objectFactory.getProtocolSerializer().simpleError(e.getMessage());
         }
 
         List<Pair<String, String>> keyValuePairs = new ArrayList<>();
@@ -53,22 +61,65 @@ public class Xadd extends AbstractHandler {
     }
 
     private String validateStreamId(String newId, String existingId) {
-        long newMillisecondsTime = Long.parseLong(newId.substring(0, newId.indexOf("-")));
-        long newSequenceNumber = Long.parseLong(newId.substring(newId.indexOf("-") + 1));
-        if (newMillisecondsTime == 0 && newSequenceNumber == 0) {
-            return "ERR The ID specified in XADD must be greater than 0-0";
+        String millisecondsString = newId.substring(0, newId.indexOf("-"));
+        long newMillisecondsTime = Long.parseLong(millisecondsString);
+
+        String sequenceString = newId.substring(newId.indexOf("-") + 1);
+        long newSequenceNumber = existingId == null ?
+                generateNewSequenceNumber(sequenceString, newMillisecondsTime) :
+                generateSequenceNumberWithExistingStream(existingId, newMillisecondsTime, sequenceString);
+
+        return String.format("%s-%s", millisecondsString, newSequenceNumber);
+    }
+
+    private long generateNewSequenceNumber(String sequenceString, long newMillisecondsTime) {
+        if (sequenceString.equals("*")) {
+            return newMillisecondsTime == 0 ? 1 : 0;
+        } else {
+            long newSequenceNumber = Long.parseLong(sequenceString);
+
+            if (newMillisecondsTime == 0 && newSequenceNumber == 0) {
+                throw new InvalidIdException(DOUBLE_ZERO_ID_ERROR_MESSAGE);
+            }
+
+            return newSequenceNumber;
         }
-        if (existingId == null) {
-            return null;
-        }
+    }
+
+    private long generateSequenceNumberWithExistingStream(String existingId, long newMillisecondsTime, String sequenceString) {
         long existingMillisecondsTime = Long.parseLong(existingId.substring(0, existingId.indexOf("-")));
         long existingSequenceNumber = Long.parseLong(existingId.substring(existingId.indexOf("-") + 1));
-        if (newMillisecondsTime < existingMillisecondsTime) {
-            return "ERR The ID specified in XADD is equal or smaller than the target stream top item";
+
+        if (sequenceString.equals("*")) {
+            if (newMillisecondsTime < existingMillisecondsTime) {
+                throw new InvalidIdException(INVALID_ID_ERROR_MESSAGE);
+            } else if (newMillisecondsTime > existingMillisecondsTime) {
+                return 0;
+            } else {
+                return existingSequenceNumber + 1;
+            }
+        } else {
+            long newSequenceNumber = Long.parseLong(sequenceString);
+
+            if (newMillisecondsTime == 0 && newSequenceNumber == 0) {
+                throw new InvalidIdException(DOUBLE_ZERO_ID_ERROR_MESSAGE);
+            }
+
+            if (newMillisecondsTime < existingMillisecondsTime) {
+                throw new InvalidIdException(INVALID_ID_ERROR_MESSAGE);
+            }
+
+            if (newMillisecondsTime == existingMillisecondsTime && newSequenceNumber <= existingSequenceNumber) {
+                throw new InvalidIdException(INVALID_ID_ERROR_MESSAGE);
+            }
+
+            return newSequenceNumber;
         }
-        if (newMillisecondsTime == existingMillisecondsTime && newSequenceNumber <= existingSequenceNumber) {
-            return "ERR The ID specified in XADD is equal or smaller than the target stream top item";
+    }
+
+    private static class InvalidIdException extends RuntimeException {
+        private InvalidIdException(String message) {
+            super(message);
         }
-        return null;
     }
 }
