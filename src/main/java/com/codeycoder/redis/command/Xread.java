@@ -4,6 +4,7 @@ import com.codeycoder.redis.config.ObjectFactory;
 import com.codeycoder.redis.protocol.ValueType;
 import com.codeycoder.redis.storage.Storage;
 import com.codeycoder.redis.storage.StreamRecord;
+import org.apache.commons.lang3.tuple.Pair;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -16,9 +17,41 @@ public class Xread extends AbstractHandler {
 
     @Override
     public byte[] handle(String[] arguments) {
-        validateArguments(arguments);
-        String streamKey = arguments[2];
-        String startId = arguments[3];
+        // TODO: validate arguments
+
+        int streamsIndex = getStreamsIndex(arguments);
+        var keysIdsNumber = (arguments.length - streamsIndex - 1) / 2;
+        List<Pair<String, String>> keyIdPairs = parseKeyIdPairs(arguments, streamsIndex, keysIdsNumber);
+        List result = keyIdPairs.stream()
+                .map(this::toSerializableStreams)
+                .toList();
+
+        return objectFactory.getProtocolSerializer().array(result);
+    }
+
+    private int getStreamsIndex(String[] arguments) {
+        for (int i = 1; i < arguments.length - 2; i++) {
+            if (arguments[i].equals("streams")) {
+                return i;
+            }
+        }
+
+        throw new IllegalArgumentException("Expected 'streams' argument");
+    }
+
+    private List<Pair<String, String>> parseKeyIdPairs(String[] arguments, int streamsIndex, int keysIdsNumber) {
+        List<Pair<String, String>> keyIdPairs = new ArrayList<>();
+        int firstKeyIndex = streamsIndex + 1;
+        for (int i = firstKeyIndex; i < firstKeyIndex + keysIdsNumber; i++) {
+            keyIdPairs.add(Pair.of(arguments[i], arguments[i + keysIdsNumber]));
+        }
+        return keyIdPairs;
+    }
+
+    private List toSerializableStreams(Pair<String, String> keyIdPair) {
+        String streamKey = keyIdPair.getKey();
+        String startId = keyIdPair.getValue();
+
         List foundStream =
                 Optional.ofNullable(Storage.get(streamKey))
                         .filter(r -> r.valueType() == ValueType.STREAM)
@@ -28,15 +61,7 @@ public class Xread extends AbstractHandler {
                         .filter(r -> r.id().compareTo(startId) > 0)
                         .map(StreamRecord::toSerializable)
                         .toList();
-        return objectFactory.getProtocolSerializer().array(List.of(List.of(streamKey, foundStream)));
-    }
 
-    private void validateArguments(String[] arguments) {
-        if (arguments.length < 4) {
-            throw new IllegalArgumentException("Expected at least 4 arguments, got " + arguments.length);
-        }
-        if (!arguments[1].equalsIgnoreCase("streams")) {
-            throw new IllegalArgumentException("Expected 'streams' argument, got " + arguments[1]);
-        }
+        return List.of(streamKey, foundStream);
     }
 }
