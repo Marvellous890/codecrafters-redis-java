@@ -35,7 +35,8 @@ public class Xread extends AbstractHandler {
         } else {
             long blockTimeout = Long.parseLong(arguments[blockIndex + 1]);
             long start = System.currentTimeMillis();
-            long end = blockTimeout == 0 ? Long.MAX_VALUE : start + blockTimeout;;
+            long end = blockTimeout == 0 ? Long.MAX_VALUE : start + blockTimeout;
+            ;
             boolean timedOut = true;
 
             result = getResult(keyIdPairs);
@@ -86,10 +87,25 @@ public class Xread extends AbstractHandler {
     private List<Pair<String, String>> parseKeyIdPairs(String[] arguments, int streamsIndex, int keysIdsNumber) {
         List<Pair<String, String>> keyIdPairs = new ArrayList<>();
         int firstKeyIndex = streamsIndex + 1;
+
         for (int i = firstKeyIndex; i < firstKeyIndex + keysIdsNumber; i++) {
-            keyIdPairs.add(Pair.of(arguments[i], arguments[i + keysIdsNumber]));
+            String streamKey = arguments[i];
+            String streamId = checkSpecialId(streamKey, arguments[i + keysIdsNumber]);
+            keyIdPairs.add(Pair.of(streamKey, streamId));
         }
         return keyIdPairs;
+    }
+
+    private String checkSpecialId(String streamKey, String streamId) {
+        if (streamId.equals("$")) {
+            return Optional.ofNullable(Storage.get(streamKey))
+                    .filter(r -> r.valueType() == ValueType.STREAM)
+                    .flatMap(r -> ((List<StreamRecord>) r.value()).reversed().stream().findFirst())
+                    .map(StreamRecord::id)
+                    .orElse("0-0");
+        } else {
+            return streamId;
+        }
     }
 
     private List getResult(List<Pair<String, String>> keyIdPairs) {
