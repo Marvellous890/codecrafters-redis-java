@@ -1,9 +1,6 @@
 package com.codeycoder.redis;
 
-import com.codeycoder.redis.command.CommandFactory;
-import com.codeycoder.redis.command.Handler;
-import com.codeycoder.redis.command.Psync;
-import com.codeycoder.redis.command.Write;
+import com.codeycoder.redis.command.*;
 import com.codeycoder.redis.config.ApplicationProperties;
 import com.codeycoder.redis.config.Logger;
 import com.codeycoder.redis.config.ObjectFactory;
@@ -65,6 +62,21 @@ public class ConnectionHandler extends Thread {
                     LOGGER.log("Start replicate command: " + commandString);
                     commandReplicator.replicateWriteCommand(commandString);
                     LOGGER.log("Command is sent for replication");
+                }
+
+                if (handler instanceof Multi multi) {
+                    while (true) {
+                        outputStream.write(response);
+                        outputStream.flush();
+                        var parsedInput = protocolDeserializer.parseInput(inputStream);
+                        var commandWithArguments = parsedInput.getLeft().split(" ");
+                        if (commandWithArguments[0].equalsIgnoreCase("EXEC")) {
+                            response = multi.executeCommands();
+                            break;
+                        } else {
+                            response = multi.enqueueCommand(commandWithArguments);
+                        }
+                    }
                 }
 
                 LOGGER.log("End handling with response: " + new String(response));
