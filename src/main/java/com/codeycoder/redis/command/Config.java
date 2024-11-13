@@ -21,11 +21,11 @@ public class Config extends AbstractHandler {
                 return switch (parameter) {
                     case DIR -> {
                         var dir = objectFactory.getApplicationProperties().getDir();
-                        yield objectFactory.getProtocolSerializer().array(List.of(DIR, dir));
+                        yield protocolSerializer().array(List.of(DIR, dir));
                     }
                     case DB_FILENAME -> {
                         var dbFilename = objectFactory.getApplicationProperties().getDbFilename();
-                        yield objectFactory.getProtocolSerializer().array(List.of(DB_FILENAME, dbFilename));
+                        yield protocolSerializer().array(List.of(DB_FILENAME, dbFilename));
                     }
                     default -> throw new RuntimeException("Unknown parameter: " + parameter);
                 };

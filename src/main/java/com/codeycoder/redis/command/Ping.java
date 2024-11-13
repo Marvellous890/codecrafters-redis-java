@@ -12,6 +12,6 @@ public class Ping extends AbstractHandler {
 
     @Override
     public byte[] handle(String[] arguments) {
-        return objectFactory.getProtocolSerializer().simpleString("PONG");
+        return protocolSerializer().simpleString("PONG");
     }
 }
